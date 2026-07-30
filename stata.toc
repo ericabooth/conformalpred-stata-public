@@ -1,0 +1,3 @@
+v 3
+d conformalpred: split-conformal prediction intervals for Stata
+p conformalpred

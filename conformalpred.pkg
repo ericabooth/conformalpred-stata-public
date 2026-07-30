@@ -1,0 +1,19 @@
+v 3
+d conformalpred: Split-conformal prediction intervals for regress and poisson
+d
+d conformalpred wraps an ordinary regress or poisson fit and adds
+d distribution-free prediction intervals. It splits the estimation
+d sample, refits on the training half, takes the calibration quantile
+d of the absolute prediction errors, and writes lower and upper bound
+d variables with a finite-sample coverage guarantee that does not
+d depend on normal or homoskedastic errors (Shafer & Vovk 2008).
+d
+d Requires: Stata 16.0 or newer
+d
+d Author: Eric A. Booth, Sr Researcher, Texas 2036
+d Support: eric.a.booth@gmail.com
+d
+d Distribution-Date: 20260706
+d
+f conformalpred.ado
+f conformalpred.sthlp
