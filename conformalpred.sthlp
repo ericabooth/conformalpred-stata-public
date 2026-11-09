@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 0.1.0  2026-07-06}{...}
+{* *! version 0.1.1  2026-11-09}{...}
 {viewerjumpto "Syntax" "conformalpred##syntax"}{...}
 {viewerjumpto "Description" "conformalpred##description"}{...}
 {viewerjumpto "Why it works" "conformalpred##why"}{...}
@@ -80,6 +80,8 @@ distributional assumptions.
 It must begin with {cmd:regress} (abbreviations of three or more letters
 accepted) or {cmd:poisson}, followed by a dependent variable and any
 covariates or options, e.g. {cmd:command(regress wage educ exper, vce(robust))}.
+Weights go before the comma and options after it, as in the wrapped
+command; {cmd:conformalpred} passes the options to both fits.
 It may not contain {cmd:if} or {cmd:in}; restrict the data in memory first.
 {cmd:conformalpred} runs the command once on the full sample to fix the
 estimation sample, then refits on the training half.{p_end}
@@ -135,11 +137,13 @@ need full-sample coefficients afterwards.
 {phang2}{cmd:. list wage cp_lower cp_upper in 1/5}{p_end}
 {phang2}{cmd:. display r(Q)}{p_end}
 
-{pstd}A count outcome via {cmd:poisson}, custom prefix and a 70/30 split:{p_end}
-{phang2}{cmd:. webuse dollhill3, clear}{p_end}
-{phang2}{cmd:. conformalpred, command(poisson deaths smokes i.agecat) ///}{p_end}
+{pstd}Options inside {cmd:command()} are passed to both fits:{p_end}
+{phang2}{cmd:. conformalpred, command(regress wage grade tenure, vce(robust)) alpha(0.1) seed(20260706) prefix(rb)}{p_end}
+
+{pstd}A count outcome (weekly hours) via {cmd:poisson}, custom prefix and a 70/30 split:{p_end}
+{phang2}{cmd:. conformalpred, command(poisson hours grade i.union) ///}{p_end}
 {phang2}{cmd:      alpha(0.1) seed(20260706) split(0.7) prefix(pi)}{p_end}
-{phang2}{cmd:. list deaths pi_lower pi_upper in 1/5}{p_end}
+{phang2}{cmd:. list hours pi_lower pi_upper in 1/5}{p_end}
 
 {pstd}Score coverage on a fresh holdout (outcome set to missing keeps the
 holdout out of the fit, but predictions and bounds are still generated):{p_end}
@@ -162,11 +166,18 @@ holdout out of the fit, but predictions and bounds are still generated):{p_end}
 the linear prediction; for {cmd:poisson} it is centered on the predicted
 count (the conditional mean, {cmd:predict, n}) and brackets the observed
 count.  Both use symmetric absolute-error scores, so intervals have constant
-width across observations in v0.1.0; locally adaptive widths (normalized
+width across observations; locally adaptive widths (normalized
 scores) are a possible extension.  {cmd:logit} is deliberately excluded:
 a plus-or-minus band around a predicted probability is not a meaningful
 interval for a 0/1 outcome, and honest conformal treatment of binary
 outcomes needs conformal {it:sets}, not intervals.
+
+{pstd}
+{bf:Sample size.}  The exact guarantee needs ceil((1-alpha)(n+1)) <= n
+calibration observations, so alpha(0.1) needs at least 9 and alpha(0.05)
+at least 19.  Very small data sets (a few dozen observations) can also
+leave the training or calibration set empty after the random split, which
+is an error.
 
 {pstd}
 {bf:Randomness.}  The split is random, so Q and the bounds vary across runs

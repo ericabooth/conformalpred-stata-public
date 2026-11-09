@@ -1,5 +1,5 @@
 * ==========================================================================
-* test_conformalpred.do -- test battery for conformalpred v0.1.0
+* test_conformalpred.do -- test battery for conformalpred v0.1.1
 * Run in batch from any scratch directory:  stata-mp -b do test_conformalpred.do
 * All paths live in globals set here; nothing below is hard-coded.
 * ==========================================================================
@@ -141,6 +141,49 @@ drop cp_lower
 * no such option / empty command
 capture conformalpred, command() seed(1)
 assert _rc == 198
+
+* if/in is still rejected when command() also carries options, and a
+* command with options but no dependent variable is rejected
+capture conformalpred, command(regress price mpg if foreign == 1, vce(robust)) seed(1)
+assert _rc == 198
+capture conformalpred, command(regress , vce(robust)) seed(1)
+assert _rc == 198
+
+display as text "{hline 70}"
+display as text "TEST 6: options inside command() (v0.1.1 regression)"
+display as text "{hline 70}"
+
+* vce(robust) changes only the standard errors, so the bounds must
+* match the same call without the option, seed for seed
+sysuse auto, clear
+conformalpred, command(regress price mpg weight) seed(11) prefix(a)
+local qa = r(Q)
+conformalpred, command(regress price mpg weight, vce(robust)) seed(11) prefix(b)
+assert r(Q) == `qa'
+assert a_lower == b_lower & a_upper == b_upper
+assert "`e(vcetype)'" == "Robust"
+assert e(N) == r(n_train)
+
+* an option that changes the fit: noconstant must reach both fits
+conformalpred, command(regress price mpg weight, noconstant) seed(11) prefix(c)
+assert "`e(cmdline)'" != ""
+assert strpos("`e(cmdline)'", "noconstant") > 0
+assert r(Q) != `qa'
+
+* poisson with exposure(); weights before the comma
+sysuse nlsw88, clear
+generate double expo = 1 + mod(_n, 3)
+conformalpred, command(poisson hours grade, exposure(expo)) seed(5) prefix(p)
+assert "`e(offset)'" == "ln(expo)"
+assert !missing(p_lower) if !missing(grade, hours)
+conformalpred, command(regress wage grade [aw=hours], vce(robust)) seed(5) prefix(w)
+assert "`e(wtype)'" == "aweight" & "`e(vcetype)'" == "Robust"
+
+* help example 2 (poisson, split(0.7)) runs and uses the exact quantile
+conformalpred, command(poisson hours grade i.union) alpha(0.1) ///
+    seed(20260706) split(0.7) prefix(pi)
+assert r(n_calib) >= 9
+assert ceil(0.9 * (r(n_calib) + 1)) <= r(n_calib)
 
 display as text "{hline 70}"
 display as text "ALL conformalpred TESTS PASSED"

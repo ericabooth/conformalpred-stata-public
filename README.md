@@ -20,7 +20,7 @@ plus-or-minus the ceil((1-alpha)(n+1))-th smallest calibration error covers
 the new outcome with probability at least 1-alpha. The only requirement is
 exchangeability — new points drawn like the calibration points.
 
-Version 0.1.0 supports `regress` (intervals around the linear prediction)
+Version 0.1.1 supports `regress` (intervals around the linear prediction)
 and `poisson` (intervals around the predicted count). Intervals have
 constant width across observations; `logit` is excluded because a
 plus-or-minus band around a predicted probability is not a meaningful
@@ -45,6 +45,9 @@ list wage cp_lower cp_upper in 1/5
 display "half-width Q = " r(Q) ", target coverage = " r(coverage_target)
 ```
 
+Options inside `command()` go after the comma as usual and are passed to
+both fits, for example `command(regress wage grade tenure, vce(robust))`.
+
 Options: `alpha(#)` miscoverage rate (default 0.05), `seed(#)` reproducible
 split, `split(#)` training fraction (default 0.5), `prefix(name)` stub for
 the generated variables (default `cp`).
@@ -64,6 +67,16 @@ the generated variables (default `cp`).
 | `r(prefix)` | prefix of the generated bound variables |
 
 After the call, `e()` holds the training-half fit, not a full-sample fit.
+
+## Changelog
+
+- 0.1.1 (2026-11-09): options inside `command()` now work. In 0.1.0 any
+  comma in `command()`, such as `vce(robust)` or `exposure()`, failed with
+  "option if not allowed" (r(198)) because the training refit appended
+  `if` after the options. The poisson help example now uses `nlsw88`
+  (the old `dollhill3` example had 10 observations and failed with the
+  documented seed). Results for commands without options are unchanged.
+- 0.1.0 (2026-07-06): first release.
 
 ## License
 

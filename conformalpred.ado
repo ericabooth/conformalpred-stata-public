@@ -1,6 +1,8 @@
-*! version 0.1.0  2026-07-06  Eric A. Booth, Sr Researcher, Texas 2036
+*! version 0.1.1  2026-11-09  Eric A. Booth, Sr Researcher, Texas 2036
 *! conformalpred: split-conformal prediction intervals for regress and poisson
 *! Distribution-free finite-sample prediction intervals (Shafer & Vovk 2008).
+* 0.1.1  2026-11-09  options inside command() (e.g. vce(robust)) now work:
+*                    the training refit puts -if- before the comma.
 program define conformalpred, rclass
     version 16.0
     // version 16.0: needs only long-stable features (syntax, tempvar,
@@ -42,15 +44,18 @@ program define conformalpred, rclass
     if "`supported'" == "" {
         display as error "command() must begin with {bf:regress} or " ///
             "{bf:poisson}; received {bf:`cmd'}"
-        display as error "conformalpred v0.1.0 supports estimators whose" ///
+        display as error "conformalpred supports estimators whose" ///
             " default predict is the conditional mean of the outcome"
         exit 198
     }
-    if strlen("`rest'") == 0 {
+    * split the model at the comma: -if- must go before any options
+    _parse comma spec opts : rest
+    if strlen(strtrim(`"`macval(spec)'"')) == 0 {
         display as error "command() must name a dependent variable"
         exit 198
     }
-    if strpos(" `rest' ", " if ") > 0 | strpos(" `rest' ", " in ") > 0 {
+    if strpos(`" `macval(spec)' "', " if ") > 0 | ///
+        strpos(`" `macval(spec)' "', " in ") > 0 {
         display as error "command() may not contain if or in;" ///
             " restrict the data in memory before calling conformalpred"
         exit 198
@@ -60,7 +65,7 @@ program define conformalpred, rclass
     if "`seed'" != "" set seed `seed'
 
     * ---- fit once on the full sample to fix the estimation sample ---------
-    quietly `supported' `rest'
+    quietly `supported' `spec' `opts'
     local depvar "`e(depvar)'"
     tempvar esample train
     quietly generate byte `esample' = e(sample)
@@ -80,7 +85,7 @@ program define conformalpred, rclass
     }
 
     * ---- refit on the training half only ----------------------------------
-    quietly `supported' `rest' if `train' == 1
+    quietly `supported' `spec' if `train' == 1 `opts'
 
     * ---- calibration scores: absolute residuals off-sample ----------------
     tempvar yhat resid
@@ -118,7 +123,7 @@ program define conformalpred, rclass
     display as text ""
     display as text "Split-conformal prediction intervals"
     display as text "{hline 52}"
-    display as text "  model             : " as result "`supported' `rest'"
+    display as text "  model             : " as result `"`supported' `macval(rest)'"'
     display as text "  training obs      : " as result `n_train'
     display as text "  calibration obs   : " as result `n_calib'
     display as text "  target coverage   : " as result %5.3f (1 - `alpha')
