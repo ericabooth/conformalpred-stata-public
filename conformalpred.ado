@@ -6,7 +6,7 @@
 program define conformalpred, rclass
     version 16.0
     // version 16.0: needs only long-stable features (syntax, tempvar,
-    // predict, inline Mata); 16 is the floor the book supports.
+    // predict, inline Mata), so Stata 16 is the minimum version.
 
     syntax , COMMand(string asis) [ Alpha(real 0.05)          ///
         SEED(numlist integer max=1 >=0) SPLit(real 0.5)       ///
